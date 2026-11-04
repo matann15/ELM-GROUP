@@ -1,0 +1,55 @@
+@import "tailwindcss";
+@import "@fontsource-variable/heebo";
+
+@theme {
+  --font-sans: "Heebo Variable", "Heebo", "Segoe UI", Arial, sans-serif;
+  /* ורוד ELM — נדגם מהלוגו (#F80593). לכפתורים וטקסט משמש גוון כהה מעט, לניגודיות קריאה (WCAG AA) */
+  --color-brand-logo: #f80593;
+  --color-brand: #d6047f;
+  --color-brand-dark: #a80364;
+  --color-brand-soft: #fff0f8;
+  --color-brand-line: #fbc4e3;
+  --color-ink: #1d1d22;
+  --color-ink-2: #4a4a55;
+  --color-ink-3: #74747f;
+  --color-line: #e7e7ec;
+  --color-surface: #ffffff;
+  --color-canvas: #f7f7f9;
+}
+
+html {
+  direction: rtl;
+}
+body {
+  background: var(--color-canvas);
+  color: var(--color-ink);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  font-feature-settings: "kern";
+}
+/* מספרי טלפון, שעות ותאריכים — תמיד משמאל לימין בתוך טקסט עברי */
+.ltr {
+  direction: ltr;
+  unicode-bidi: isolate;
+  display: inline-block;
+}
+.tabular {
+  font-variant-numeric: tabular-nums;
+}
+:focus-visible {
+  outline: 2px solid var(--color-brand);
+  outline-offset: 2px;
+}
+dialog::backdrop {
+  background: rgb(20 20 25 / 0.45);
+}
+dialog[open] {
+  animation: pop 0.14s ease-out;
+}
+@keyframes pop {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: none; }
+}
+input, select, textarea, button {
+  font: inherit;
+}
