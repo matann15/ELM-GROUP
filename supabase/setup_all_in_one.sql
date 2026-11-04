@@ -1,6 +1,6 @@
 -- ELM GROUP Sales — כל ההגדרות בקובץ אחד. להדביק ב-SQL Editor ולהריץ פעם אחת (Run).
 
--- ===== migrations/20261104000001_schema.sql =====
+-- ===== supabase/migrations/20261104000001_schema.sql =====
 -- ELM GROUP Sales — core schema
 -- All timestamps are timestamptz (UTC in storage). The app renders and plans in Asia/Jerusalem.
 
@@ -309,7 +309,7 @@ create table public.audit_log (
 );
 create index audit_log_record_idx on public.audit_log (record_id, changed_at desc);
 
--- ===== migrations/20261104000002_security.sql =====
+-- ===== supabase/migrations/20261104000002_security.sql =====
 -- ELM GROUP Sales — functions, triggers, audit, Row Level Security
 
 -- ───────────────────────── helper functions ─────────────────────────
@@ -636,7 +636,7 @@ grant execute on function public.is_admin(), public.is_active_user(), public.can
 -- audit_log: only select for authenticated (RLS further limits to admin)
 revoke insert, update, delete on public.audit_log from authenticated;
 
--- ===== migrations/20261104000003_notes.sql =====
+-- ===== supabase/migrations/20261104000003_notes.sql =====
 -- הערות חופשיות בכרטיס לקוח (היסטוריה)
 create table public.company_notes (
   id uuid primary key default gen_random_uuid(),
@@ -654,3 +654,28 @@ create policy notes_delete on public.company_notes for delete to authenticated u
 create trigger company_notes_audit after insert or update or delete on public.company_notes for each row execute function public.audit_row();
 grant select, insert, delete on public.company_notes to authenticated;
 revoke all on public.company_notes from anon;
+
+-- ===== supabase/migrations/20261104000004_admin_sql_bootstrap.sql =====
+-- תיקון: הגנות התפקיד והבעלות חלות על משתמשים מחוברים (בקשות מהאתר).
+-- SQL שמורץ מלוח הבקרה של Supabase (ללא משתמש מחובר, auth.uid() = null) אינו נחסם — נדרש להקמת המנהל הראשון.
+-- משתמש אנונימי אינו יכול להגיע לכאן: אין לו הרשאות על הטבלאות.
+create or replace function public.protect_profile()
+returns trigger language plpgsql security definer set search_path = '' as $$
+begin
+  if auth.uid() is not null and not public.is_admin() then
+    if new.role is distinct from old.role or new.active is distinct from old.active or new.email is distinct from old.email then
+      raise exception 'רק מנהל יכול לשנות תפקיד או הרשאה';
+    end if;
+  end if;
+  new.updated_at := now();
+  return new;
+end $$;
+
+create or replace function public.guard_owner_change()
+returns trigger language plpgsql security definer set search_path = '' as $$
+begin
+  if auth.uid() is not null and not public.is_admin() and new.owner_id is distinct from old.owner_id then
+    raise exception 'רק מנהל יכול להעביר רשומה לאיש מכירות אחר';
+  end if;
+  return new;
+end $$;
